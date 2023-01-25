@@ -1,52 +1,48 @@
 package provider
 
 import (
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
-
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/slok/terraform-provider-onepasswordorg/internal/model"
-	"github.com/slok/terraform-provider-onepasswordorg/internal/provider/attributeutils"
 )
 
-var permissionsAttribute = tfsdk.Attribute{
-	Required:    true,
+var permissionsAttribute = &schema.Resource{
 	Description: `The permissions of the access. Note: Not all permissions are available in all plans, and some permissions require others. More info in [1password docs](https://developer.1password.com/docs/cli/vault-permissions/).`,
-	Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-		"allow_viewing":           {Type: types.BoolType, Computed: true, Optional: true, PlanModifiers: tfsdk.AttributePlanModifiers{attributeutils.DefaultValue(types.Bool{Value: false})}},
-		"allow_editing":           {Type: types.BoolType, Computed: true, Optional: true, PlanModifiers: tfsdk.AttributePlanModifiers{attributeutils.DefaultValue(types.Bool{Value: false})}},
-		"allow_managing":          {Type: types.BoolType, Computed: true, Optional: true, PlanModifiers: tfsdk.AttributePlanModifiers{attributeutils.DefaultValue(types.Bool{Value: false})}},
-		"view_items":              {Type: types.BoolType, Computed: true, Optional: true, PlanModifiers: tfsdk.AttributePlanModifiers{attributeutils.DefaultValue(types.Bool{Value: false})}},
-		"create_items":            {Type: types.BoolType, Computed: true, Optional: true, PlanModifiers: tfsdk.AttributePlanModifiers{attributeutils.DefaultValue(types.Bool{Value: false})}},
-		"edit_items":              {Type: types.BoolType, Computed: true, Optional: true, PlanModifiers: tfsdk.AttributePlanModifiers{attributeutils.DefaultValue(types.Bool{Value: false})}},
-		"archive_items":           {Type: types.BoolType, Computed: true, Optional: true, PlanModifiers: tfsdk.AttributePlanModifiers{attributeutils.DefaultValue(types.Bool{Value: false})}},
-		"delete_items":            {Type: types.BoolType, Computed: true, Optional: true, PlanModifiers: tfsdk.AttributePlanModifiers{attributeutils.DefaultValue(types.Bool{Value: false})}},
-		"view_and_copy_passwords": {Type: types.BoolType, Computed: true, Optional: true, PlanModifiers: tfsdk.AttributePlanModifiers{attributeutils.DefaultValue(types.Bool{Value: false})}},
-		"view_item_history":       {Type: types.BoolType, Computed: true, Optional: true, PlanModifiers: tfsdk.AttributePlanModifiers{attributeutils.DefaultValue(types.Bool{Value: false})}},
-		"import_items":            {Type: types.BoolType, Computed: true, Optional: true, PlanModifiers: tfsdk.AttributePlanModifiers{attributeutils.DefaultValue(types.Bool{Value: false})}},
-		"export_items":            {Type: types.BoolType, Computed: true, Optional: true, PlanModifiers: tfsdk.AttributePlanModifiers{attributeutils.DefaultValue(types.Bool{Value: false})}},
-		"copy_and_share_items":    {Type: types.BoolType, Computed: true, Optional: true, PlanModifiers: tfsdk.AttributePlanModifiers{attributeutils.DefaultValue(types.Bool{Value: false})}},
-		"print_items":             {Type: types.BoolType, Computed: true, Optional: true, PlanModifiers: tfsdk.AttributePlanModifiers{attributeutils.DefaultValue(types.Bool{Value: false})}},
-		"manage_vault":            {Type: types.BoolType, Computed: true, Optional: true, PlanModifiers: tfsdk.AttributePlanModifiers{attributeutils.DefaultValue(types.Bool{Value: false})}},
-	}),
+	Schema: map[string]*schema.Schema{
+		"allow_viewing":           {Type: schema.TypeBool, Computed: true, Optional: true, Default: false},
+		"allow_editing":           {Type: schema.TypeBool, Computed: true, Optional: true, Default: false},
+		"allow_managing":          {Type: schema.TypeBool, Computed: true, Optional: true, Default: false},
+		"view_items":              {Type: schema.TypeBool, Computed: true, Optional: true, Default: false},
+		"create_items":            {Type: schema.TypeBool, Computed: true, Optional: true, Default: false},
+		"edit_items":              {Type: schema.TypeBool, Computed: true, Optional: true, Default: false},
+		"archive_items":           {Type: schema.TypeBool, Computed: true, Optional: true, Default: false},
+		"delete_items":            {Type: schema.TypeBool, Computed: true, Optional: true, Default: false},
+		"view_and_copy_passwords": {Type: schema.TypeBool, Computed: true, Optional: true, Default: false},
+		"view_item_history":       {Type: schema.TypeBool, Computed: true, Optional: true, Default: false},
+		"import_items":            {Type: schema.TypeBool, Computed: true, Optional: true, Default: false},
+		"export_items":            {Type: schema.TypeBool, Computed: true, Optional: true, Default: false},
+		"copy_and_share_items":    {Type: schema.TypeBool, Computed: true, Optional: true, Default: false},
+		"print_items":             {Type: schema.TypeBool, Computed: true, Optional: true, Default: false},
+		"manage_vault":            {Type: schema.TypeBool, Computed: true, Optional: true, Default: false},
+	},
 }
 
 func mapTfToModelAccessPermissions(ap AccessPermissions) model.AccessPermissions {
 	return model.AccessPermissions{
-		AllowViewing:         ap.AllowViewing.Value,
-		AllowEditing:         ap.AllowEditing.Value,
-		AllowManaging:        ap.AllowManaging.Value,
-		ViewItems:            ap.ViewItems.Value,
-		CreateItems:          ap.CreateItems.Value,
-		EditItems:            ap.EditItems.Value,
-		ArchiveItems:         ap.ArchiveItems.Value,
-		DeleteItems:          ap.DeleteItems.Value,
-		ViewAndCopyPasswords: ap.ViewAndCopyPasswords.Value,
-		ViewItemHistory:      ap.ViewItemHistory.Value,
-		ImportItems:          ap.ImportItems.Value,
-		ExportItems:          ap.ExportItems.Value,
-		CopyAndShareItems:    ap.CopyAndShareItems.Value,
-		PrintItems:           ap.PrintItems.Value,
-		ManageVault:          ap.ManageVault.Value,
+		AllowViewing:         ap.AllowViewing,
+		AllowEditing:         ap.AllowEditing,
+		AllowManaging:        ap.AllowManaging,
+		ViewItems:            ap.ViewItems,
+		CreateItems:          ap.CreateItems,
+		EditItems:            ap.EditItems,
+		ArchiveItems:         ap.ArchiveItems,
+		DeleteItems:          ap.DeleteItems,
+		ViewAndCopyPasswords: ap.ViewAndCopyPasswords,
+		ViewItemHistory:      ap.ViewItemHistory,
+		ImportItems:          ap.ImportItems,
+		ExportItems:          ap.ExportItems,
+		CopyAndShareItems:    ap.CopyAndShareItems,
+		PrintItems:           ap.PrintItems,
+		ManageVault:          ap.ManageVault,
 	}
 }
 

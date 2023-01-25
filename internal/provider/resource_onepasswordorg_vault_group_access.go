@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/slok/terraform-provider-onepasswordorg/internal/model"
-	"github.com/slok/terraform-provider-onepasswordorg/internal/provider/attributeutils"
 )
 
 type resourceVaultGroupAccessType struct{}
@@ -30,14 +29,12 @@ Provides vault access for a group.
 				Type:          types.StringType,
 				Required:      true,
 				PlanModifiers: tfsdk.AttributePlanModifiers{tfsdk.RequiresReplace()},
-				Validators:    []tfsdk.AttributeValidator{attributeutils.NonEmptyString},
 				Description:   "The vault ID.",
 			},
 			"group_id": {
 				Type:          types.StringType,
 				Required:      true,
 				PlanModifiers: tfsdk.AttributePlanModifiers{tfsdk.RequiresReplace()},
-				Validators:    []tfsdk.AttributeValidator{attributeutils.NonEmptyString},
 				Description:   "The group ID.",
 			},
 			"permissions": permissionsAttribute,

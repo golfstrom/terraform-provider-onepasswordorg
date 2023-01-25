@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/slok/terraform-provider-onepasswordorg/internal/model"
 )
@@ -11,7 +12,21 @@ import (
 func (r Repository) CreateItem(ctx context.Context, item model.Item) (*model.Item, error) {
 	cmdArgs := &onePasswordCliCmd{}
 	// Create Fields
-	cmdArgs.ItemArg().ProvisionArg().EditFieldFlag("title", item.Title).FormatJSONFlag()
+	cmdArgs.ItemArg().CreateArg()
+
+	cmdArgs.EditFieldFlag("title", item.Title)
+	cmdArgs.CategoryFlag(item.Category)
+	cmdArgs.VaultFlag(item.Vault.ID)
+
+	for _, field := range item.Fields {
+		if field.Section == nil {
+			cmdArgs.RawStrArg(field.Label + "[" + field.Type + "]" + "=" + field.Value)
+		} else {
+			cmdArgs.RawStrArg(field.Section.Label + "." + field.Label + "[" + field.Type + "]" + "=" + field.Value)
+		}
+	}
+
+	cmdArgs.FormatJSONFlag()
 
 	stdout, stderr, err := r.cli.RunOpCmd(ctx, cmdArgs.GetArgs())
 	if err != nil {
@@ -53,7 +68,6 @@ func (r Repository) GetItemByTitle(ctx context.Context, vaultID string, title st
 	cmdArgs.ItemArg().GetArg().RawStrArg(title).FormatJSONFlag().VaultFlag(vaultID)
 
 	stdout, stderr, err := r.cli.RunOpCmd(ctx, cmdArgs.GetArgs())
-	fmt.Println(stdout)
 	if err != nil {
 		return nil, fmt.Errorf("op cli command failed: %w: %s", err, stderr)
 	}
@@ -71,8 +85,20 @@ func (r Repository) GetItemByTitle(ctx context.Context, vaultID string, title st
 
 func (r Repository) EnsureItem(ctx context.Context, item model.Item) (*model.Item, error) {
 	cmdArgs := &onePasswordCliCmd{}
-	// TODO: update fields
-	cmdArgs.ItemArg().EditArg().RawStrArg(item.ID).EditFieldFlag("title", item.Title)
+	cmdArgs.ItemArg().EditArg().RawStrArg(item.ID)
+
+	cmdArgs.EditFieldFlag("title", item.Title)
+	cmdArgs.VaultFlag(item.Vault.ID)
+
+	for _, field := range item.Fields {
+		if field.Section == nil {
+			cmdArgs.RawStrArg(field.Label + "[" + field.Type + "]" + "=" + field.Value)
+		} else {
+			cmdArgs.RawStrArg(field.Section.Label + "." + field.Label + "[" + field.Type + "]" + "=" + field.Value)
+		}
+	}
+
+	cmdArgs.FormatJSONFlag()
 
 	_, stderr, err := r.cli.RunOpCmd(ctx, cmdArgs.GetArgs())
 	if err != nil {
@@ -80,6 +106,16 @@ func (r Repository) EnsureItem(ctx context.Context, item model.Item) (*model.Ite
 	}
 
 	return &item, nil
+}
+
+func vaultAndItemUUID(tfID string) (vaultUUID, itemUUID string) {
+	elements := strings.Split(tfID, "/")
+
+	if len(elements) != 4 {
+		return "", ""
+	}
+
+	return elements[1], elements[3]
 }
 
 func (r Repository) DeleteItem(ctx context.Context, id string) error {
@@ -94,33 +130,60 @@ func (r Repository) DeleteItem(ctx context.Context, id string) error {
 	return nil
 }
 
-type opVaultItem struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+type opItemField struct {
+	ID      string     `json:"id"`
+	Type    string     `json:"type"`
+	Purpose string     `json:"purpose"`
+	Label   string     `json:"label"`
+	Value   string     `json:"value"`
+	Section *opSection `json:"section"`
 }
 
-type opItemField struct {
-	ID      string `json:"id"`
-	Type    string `json:"type"`
-	Purpose string `json:"purpose"`
-	Label   string `json:"label"`
-	Value   string `json:"value"`
+type opSection struct {
+	ID    string `json:"id"`
+	Label string `json:"label"`
 }
 
 type opItem struct {
-	ID     string        `json:"id"`
-	Title  string        `json:"title"`
-	Vault  opVaultItem   `json:"vault"`
-	Fields []opItemField `json:"fields"`
+	ID       string        `json:"id"`
+	Title    string        `json:"title"`
+	Category string        `json:"category"`
+	Vault    opVault       `json:"vault"`
+	Fields   []opItemField `json:"fields"`
+	Sections []opSection   `json:"sections"`
+	Tags     []string      `json:"tags"`
 }
 
 func mapOpToModelItem(u opItem) model.Item {
 	return model.Item{
-		ID:      u.ID,
-		Title:   u.Title,
-		VaultID: u.Vault.ID,
-		Fields:  mapOpToModelItemFields(u.Fields),
+		ID:       u.ID,
+		Title:    u.Title,
+		Tags:     u.Tags,
+		Category: u.Category,
+		Vault:    mapOpToModeVault(u.Vault),
+		Fields:   mapOpToModelItemFields(u.Fields),
+		Sections: mapOpToModelItemSections(u.Sections),
 	}
+}
+func mapOpToModelSection(u *opSection) model.Section {
+	return model.Section{
+		ID:    u.ID,
+		Label: u.Label,
+	}
+}
+
+func mapOpToModelItemSections(opSections []opSection) []model.Section {
+	sections := []model.Section{}
+
+	for _, opSection := range opSections {
+		section := model.Section{
+			ID:    opSection.ID,
+			Label: opSection.Label,
+		}
+		sections = append(sections, section)
+	}
+
+	return sections
 }
 
 func mapOpToModelItemFields(opFields []opItemField) []model.Field {
@@ -133,6 +196,10 @@ func mapOpToModelItemFields(opFields []opItemField) []model.Field {
 			Purpose: opField.Purpose,
 			Label:   opField.Label,
 			Value:   opField.Value,
+		}
+		if opField.Section != nil {
+			section := mapOpToModelSection(opField.Section)
+			field.Section = &section
 		}
 		fields = append(fields, field)
 	}

@@ -81,7 +81,7 @@ func (o *onePasswordCliCmd) NameFlag(name string) *onePasswordCliCmd {
 }
 
 func (o *onePasswordCliCmd) EditFieldFlag(field string, name string) *onePasswordCliCmd {
-	o.args = append(o.args, "--", field, "=", name)
+	o.args = append(o.args, "--"+field, name)
 	return o
 }
 
@@ -119,6 +119,11 @@ func (o *onePasswordCliCmd) FormatJSONFlag() *onePasswordCliCmd {
 
 func (o *onePasswordCliCmd) EmailFlag(email string) *onePasswordCliCmd {
 	o.args = append(o.args, "--email", email)
+	return o
+}
+
+func (o *onePasswordCliCmd) CategoryFlag(id string) *onePasswordCliCmd {
+	o.args = append(o.args, "--category", id)
 	return o
 }
 

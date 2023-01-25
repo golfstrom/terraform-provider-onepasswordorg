@@ -1,263 +1,496 @@
 package provider
 
 import (
+	"github.com/hashicorp/go-uuid"
+	"strings"
+
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/path"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/slok/terraform-provider-onepasswordorg/internal/model"
-	"github.com/slok/terraform-provider-onepasswordorg/internal/provider/attributeutils"
 )
 
-type resourceItemType struct{}
+func resourceItem() *schema.Resource {
+	return &schema.Resource{
+		Description:   "A 1Password item.",
+		CreateContext: resourceItemCreate,
+		ReadContext:   resourceItemRead,
+		UpdateContext: resourceItemUpdate,
+		DeleteContext: resourceItemDelete,
 
-func (r resourceItemType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
-		Description: `
-Provides a Item resource.
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
-When a 1password user resources is created, it will be invited  by email.
-`,
-		Attributes: map[string]tfsdk.Attribute{
+		Schema: map[string]*schema.Schema{
 			"id": {
-				Type:     types.StringType,
-				Computed: true,
+				Description: "The Terraform resource identifier for this item in the format `vaults/<vault_id>/items/<item_id>`.",
+				Type:        schema.TypeString,
+				Computed:    true,
 			},
-			"vault_id": {
-				Type:        types.StringType,
+			"uuid": {
+				Description: itemUUIDDescription,
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"vault": {
+				Description: vaultUUIDDescription,
+				Type:        schema.TypeString,
 				Required:    true,
-				Validators:  []tfsdk.AttributeValidator{attributeutils.NonEmptyString},
-				Description: "The name of the user.",
+				ForceNew:    true,
+			},
+			"category": {
+				Description:  fmt.Sprintf(enumDescription, categoryDescription, categories),
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "login",
+				ValidateFunc: validation.StringInSlice(categories, true),
+				ForceNew:     true,
 			},
 			"title": {
-				Type:        types.StringType,
-				Required:    true,
-				Validators:  []tfsdk.AttributeValidator{attributeutils.NonEmptyString},
-				Description: "The name of the user.",
+				Description: itemTitleDescription,
+				Type:        schema.TypeString,
+				Optional:    true,
 			},
-			"fields": {
-				Computed: true,
-				Optional: true,
-				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Type:     types.StringType,
-						Optional: true,
-						Computed: true,
+			"url": {
+				Description: urlDescription,
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"hostname": {
+				Description: dbHostnameDescription,
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"database": {
+				Description: dbDatabaseDescription,
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"port": {
+				Description: dbPortDescription,
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"type": {
+				Description:  fmt.Sprintf(enumDescription, dbTypeDescription, dbTypes),
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringInSlice(dbTypes, true),
+			},
+			"tags": {
+				Description: tagsDescription,
+				Type:        schema.TypeList,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Optional:    true,
+			},
+			"username": {
+				Description: usernameDescription,
+				Type:        schema.TypeString,
+				Optional:    true,
+			},
+			"password": {
+				Description: passwordDescription,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Sensitive:   true,
+				Computed:    true,
+			},
+			"section": {
+				Description: sectionsDescription,
+				Type:        schema.TypeList,
+				Optional:    true,
+				MinItems:    0,
+				Elem: &schema.Resource{
+					Description: sectionDescription,
+					Schema: map[string]*schema.Schema{
+						"id": {
+							Description: sectionIDDescription,
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
+						"label": {
+							Description: sectionLabelDescription,
+							Type:        schema.TypeString,
+							Required:    true,
+						},
+						"field": {
+							Description: sectionFieldsDescription,
+							Type:        schema.TypeList,
+							Optional:    true,
+							MinItems:    0,
+							Elem: &schema.Resource{
+								Description: fieldDescription,
+								Schema: map[string]*schema.Schema{
+									"id": {
+										Description: fieldIDDescription,
+										Type:        schema.TypeString,
+										Optional:    true,
+										Computed:    true,
+									},
+									"label": {
+										Description: fieldLabelDescription,
+										Type:        schema.TypeString,
+										Required:    true,
+									},
+									"purpose": {
+										Description:  fmt.Sprintf(enumDescription, fieldPurposeDescription, fieldPurposes),
+										Type:         schema.TypeString,
+										Optional:     true,
+										ValidateFunc: validation.StringInSlice(fieldPurposes, true),
+									},
+									"type": {
+										Description:  fmt.Sprintf(enumDescription, fieldTypeDescription, fieldTypes),
+										Type:         schema.TypeString,
+										Default:      "STRING",
+										Optional:     true,
+										ValidateFunc: validation.StringInSlice(fieldTypes, true),
+									},
+									"value": {
+										Description: fieldValueDescription,
+										Type:        schema.TypeString,
+										Optional:    true,
+										Computed:    true,
+										Sensitive:   true,
+									},
+								},
+							},
+						},
 					},
-					"label": {
-						Type:     types.StringType,
-						Optional: true,
-						Computed: true,
-					},
-					"type": {
-						Type:     types.StringType,
-						Optional: true,
-						Computed: true,
-					},
-					"purpose": {
-						Type:     types.StringType,
-						Optional: true,
-						Computed: true,
-					},
-					"value": {
-						Type:      types.StringType,
-						Optional:  true,
-						Computed:  true,
-						Sensitive: true,
-					},
-				}),
+				},
 			},
 		},
-	}, nil
+	}
 }
 
-func (r resourceItemType) NewResource(_ context.Context, p tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
-	prv := p.(*provider)
-	return resourceItem{
-		p: *prv,
-	}, nil
-}
-
-type resourceItem struct {
-	p provider
-}
-
-func (r resourceItem) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
-	if !r.p.configured {
-		resp.Diagnostics.AddError("Provider not configured", "The provider hasn't been configured before apply.")
-		return
+func resourceItemCreate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	p := meta.(ProviderConfig)
+	var diags diag.Diagnostics
+	if !p.configured {
+		return diag.Errorf("Provider not configured:" + "The provider hasn't been configured before apply.")
 	}
 
-	// Retrieve values from plan.
-	var tfItem Item
-	diags := req.Plan.Get(ctx, &tfItem)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Create user.
-	u := mapTfToModelItem(tfItem)
-	newItem, err := r.p.repo.CreateItem(ctx, u)
+	item, err := dataToItem(data)
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating user", "Could not create user, unexpected error: "+err.Error())
-		return
+		return diag.Errorf(err.Error())
 	}
 
-	// Map user to tf model.
-	newTfItem := mapModelToTfItem(*newItem)
-
-	diags = resp.State.Set(ctx, newTfItem)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-}
-
-func (r resourceItem) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
-	if !r.p.configured {
-		resp.Diagnostics.AddError("Provider not configured", "The provider hasn't been configured before apply.")
-		return
-	}
-
-	// Retrieve values from plan.
-	var tfItem Item
-	diags := req.State.Get(ctx, &tfItem)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Get user.
-	id := tfItem.ID.Value
-	user, err := r.p.repo.GetItemByID(ctx, id)
+	newItem, err := p.repo.CreateItem(ctx, *item)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading user", fmt.Sprintf("Could not get user %q, unexpected error: %s", id, err.Error()))
-		return
+		return diag.Errorf(err.Error())
 	}
 
-	// Map user to tf model.
-	readTfItem := mapModelToTfItem(*user)
+	itemToData(newItem, data)
 
-	diags = resp.State.Set(ctx, readTfItem)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
+	return diags
 }
 
-func (r resourceItem) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
-	if !r.p.configured {
-		resp.Diagnostics.AddError("Provider not configured", "The provider hasn't been configured before apply.")
-		return
+func resourceItemRead(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	p := meta.(ProviderConfig)
+	var diags diag.Diagnostics
+	if !p.configured {
+		return diag.Errorf("Provider not configured:" + "The provider hasn't been configured before apply.")
 	}
 
-	// Get plan values.
-	var plan Item
-	diags := req.Plan.Get(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Get current state.
-	var state Item
-	diags = req.State.Get(ctx, &state)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Use plan user as the new data and set ID from state.
-	u := mapTfToModelItem(plan)
-	u.ID = state.ID.Value
-
-	newItem, err := r.p.repo.EnsureItem(ctx, u)
+	// Get group.
+	id := data.Id()
+	_, itemUUID := vaultAndItemUUID(id)
+	item, err := p.repo.GetItemByID(ctx, itemUUID)
 	if err != nil {
-		resp.Diagnostics.AddError("Error updating user", "Could not update user, unexpected error: "+err.Error())
-		return
+		return diag.Errorf("Error reading group:" + fmt.Sprintf("Could not get item %q, unexpected error: %s", id, err.Error()))
 	}
 
-	// Map user to tf model.
-	readTfItem := mapModelToTfItem(*newItem)
-
-	diags = resp.State.Set(ctx, readTfItem)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
+	itemToData(item, data)
+	return diags
 }
 
-func (r resourceItem) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
-	if !r.p.configured {
-		resp.Diagnostics.AddError("Provider not configured", "The provider hasn't been configured before apply.")
-		return
+func resourceItemUpdate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	p := meta.(ProviderConfig)
+	var diags diag.Diagnostics
+	if !p.configured {
+		return diag.Errorf("Provider not configured:" + "The provider hasn't been configured before apply.")
 	}
 
-	// Retrieve values from plan.
-	var tfItem Item
-	diags := req.State.Get(ctx, &tfItem)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Delete user.
-	id := tfItem.ID.Value
-	err := r.p.repo.DeleteItem(ctx, id)
+	id := data.Id()
+	item, err := dataToItem(data)
 	if err != nil {
-		resp.Diagnostics.AddError("Error deleting user", fmt.Sprintf("Could not delete user %q, unexpected error: %s", id, err.Error()))
-		return
+		return diag.Errorf(err.Error())
 	}
 
-	// Remove resource from state.
-	resp.State.RemoveResource(ctx)
+	newItem, err := p.repo.EnsureItem(ctx, *item)
+	if err != nil {
+		return diag.Errorf("Error reading group:" + fmt.Sprintf("Could not get item %q, unexpected error: %s", id, err.Error()))
+	}
+
+	itemToData(newItem, data)
+	return diags
 }
 
-func (r resourceItem) ImportState(ctx context.Context, req tfsdk.ImportResourceStateRequest, resp *tfsdk.ImportResourceStateResponse) {
-	// Save the import identifier in the id attribute.
-	tfsdk.ResourceImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+func resourceItemDelete(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	p := meta.(ProviderConfig)
+	var diags diag.Diagnostics
+	if !p.configured {
+		return diag.Errorf("Provider not configured:" + "The provider hasn't been configured before apply.")
+	}
+
+	// Get group.
+	id := data.Id()
+	_, itemUUID := vaultAndItemUUID(id)
+	err := p.repo.DeleteItem(ctx, itemUUID)
+	if err != nil {
+		return diag.Errorf("Error deleting item:" + fmt.Sprintf("Could not get item %q, unexpected error: %s", id, err.Error()))
+	}
+
+	return diags
 }
 
-func mapTfToModelItem(u Item) model.Item {
-	return model.Item{
-		ID:      u.ID.Value,
-		VaultID: u.VaultID.Value,
-		Fields:  mapTfToModelItemField(u.Section),
-		Title:   u.Title.Value,
+func vaultAndItemUUID(tfID string) (vaultUUID, itemUUID string) {
+	elements := strings.Split(tfID, "/")
+
+	if len(elements) != 4 {
+		return "", ""
+	}
+
+	return elements[1], elements[3]
+}
+
+func itemToData(item *model.Item, data *schema.ResourceData) {
+	data.SetId(terraformID(*item))
+	data.Set("uuid", item.ID)
+	data.Set("vault", item.Vault.ID)
+	data.Set("title", item.Title)
+
+	for _, u := range item.URLs {
+		if u.Primary {
+			data.Set("url", u.URL)
+		}
+	}
+
+	data.Set("tags", item.Tags)
+	data.Set("category", strings.ToLower(string(item.Category)))
+
+	dataSections := data.Get("section").([]interface{})
+	for _, s := range item.Sections {
+		section := map[string]interface{}{}
+		newSection := true
+
+		// Check for existing section state
+		for i := 0; i < len(dataSections); i++ {
+			existingSection := dataSections[i].(map[string]interface{})
+			existingID := existingSection["id"].(string)
+			existingLabel := existingSection["label"].(string)
+
+			if (s.ID != "" && s.ID == existingID) || s.Label == existingLabel {
+				section = existingSection
+				newSection = false
+			}
+		}
+
+		section["id"] = s.ID
+		section["label"] = s.Label
+
+		existingFields := []interface{}{}
+		if section["field"] != nil {
+			existingFields = section["field"].([]interface{})
+		}
+		for _, f := range item.Fields {
+			if f.Section != nil && f.Section.ID == s.ID {
+				dataField := map[string]interface{}{}
+				newField := true
+				// Check for existing field state
+				for i := 0; i < len(existingFields); i++ {
+					existingField := existingFields[i].(map[string]interface{})
+					existingID := existingField["id"].(string)
+					existingLabel := existingField["label"].(string)
+
+					if (f.ID != "" && f.ID == existingID) || f.Label == existingLabel {
+						dataField = existingFields[i].(map[string]interface{})
+						newField = false
+					}
+				}
+
+				dataField["id"] = f.ID
+				dataField["label"] = f.Label
+				dataField["purpose"] = f.Purpose
+				dataField["type"] = f.Type
+				dataField["value"] = f.Value
+
+				if newField {
+					existingFields = append(existingFields, dataField)
+				}
+			}
+		}
+		section["field"] = existingFields
+
+		if newSection {
+			dataSections = append(dataSections, section)
+		}
+	}
+
+	data.Set("section", dataSections)
+
+	for _, f := range item.Fields {
+		switch f.Purpose {
+		case "USERNAME":
+			data.Set("username", f.Value)
+		case "PASSWORD":
+			data.Set("password", f.Value)
+		default:
+			if f.Section == nil {
+				data.Set(f.Label, f.Value)
+			}
+		}
 	}
 }
 
-func mapTfToModelItemField(u []Field) []model.Field {
-	return []model.Field{}
-	//	return model.Field{
-	//		Label: u.Label.Value,
-	//	}
+func dataToItem(data *schema.ResourceData) (*model.Item, error) {
+	item := model.Item{
+		ID: data.Get("uuid").(string),
+		Vault: model.Vault{
+			ID: data.Get("vault").(string),
+		},
+		Title: data.Get("title").(string),
+		URLs: []model.URL{
+			{
+				Primary: true,
+				URL:     data.Get("url").(string),
+			},
+		},
+		Tags: getTags(data),
+	}
+
+	password := data.Get("password").(string)
+
+	switch data.Get("category").(string) {
+	case "login":
+		item.Category = "login"
+		item.Fields = []model.Field{
+			{
+				ID:      "username",
+				Label:   "username",
+				Purpose: "USERNAME",
+				Type:    "STRING",
+				Value:   data.Get("username").(string),
+			},
+			{
+				ID:       "password",
+				Label:    "password",
+				Purpose:  "PASSWORD",
+				Type:     "CONCEALED",
+				Value:    password,
+				Generate: password == "",
+			},
+		}
+	case "password":
+		item.Category = "password"
+		item.Fields = []model.Field{
+			{
+				ID:       "password",
+				Label:    "password",
+				Purpose:  "PASSWORD",
+				Type:     "CONCEALED",
+				Value:    password,
+				Generate: password == "",
+			},
+		}
+	case "database":
+		item.Category = "database"
+		item.Fields = []model.Field{
+			{
+				ID:    "username",
+				Label: "username",
+				Type:  "STRING",
+				Value: data.Get("username").(string),
+			},
+			{
+				ID:       "password",
+				Label:    "password",
+				Type:     "CONCEALED",
+				Value:    password,
+				Generate: password == "",
+			},
+			{
+				ID:    "hostname",
+				Label: "hostname",
+				Type:  "STRING",
+				Value: data.Get("hostname").(string),
+			},
+			{
+				ID:    "database",
+				Label: "database",
+				Type:  "STRING",
+				Value: data.Get("database").(string),
+			},
+			{
+				ID:    "port",
+				Label: "port",
+				Type:  "STRING",
+				Value: data.Get("port").(string),
+			},
+			{
+				ID:    "database_type",
+				Label: "type",
+				Type:  "MENU",
+				Value: data.Get("type").(string),
+			},
+		}
+	}
+
+	sections := data.Get("section").([]interface{})
+	for i := 0; i < len(sections); i++ {
+		section, ok := sections[i].(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("Unable to parse section: %v", sections[i])
+		}
+		sid, err := uuid.GenerateUUID()
+		if err != nil {
+			return nil, fmt.Errorf("Unable to generate a section id: %w", err)
+		}
+
+		if section["id"].(string) != "" {
+			sid = section["id"].(string)
+		} else {
+			section["id"] = sid
+		}
+
+		s := &model.Section{
+			ID:    sid,
+			Label: section["label"].(string),
+		}
+		item.Sections = append(item.Sections, *s)
+
+		sectionFields := section["field"].([]interface{})
+		for j := 0; j < len(sectionFields); j++ {
+			field, ok := sectionFields[j].(map[string]interface{})
+			if !ok {
+				return nil, fmt.Errorf("Unable to parse section field: %v", sectionFields[j])
+			}
+
+			f := &model.Field{
+				Section: s,
+				ID:      field["id"].(string),
+				Type:    field["type"].(string),
+				Purpose: field["purpose"].(string),
+				Label:   field["label"].(string),
+				Value:   field["value"].(string),
+			}
+
+			item.Fields = append(item.Fields, *f)
+		}
+	}
+
+	return &item, nil
 }
 
-func mapModelToTfItem(u model.Item) Item {
-	return Item{
-		ID:      types.String{Value: u.ID},
-		VaultID: types.String{Value: u.VaultID},
-		Title:   types.String{Value: u.Title},
-		Section: mapModelToTfItemField(u.Fields),
+func getTags(data *schema.ResourceData) []string {
+	tagInterface := data.Get("tags").([]interface{})
+	tags := make([]string, len(tagInterface))
+	for i, tag := range tagInterface {
+		tags[i] = tag.(string)
 	}
-}
-
-func mapModelToTfItemField(u []model.Field) []Field {
-	fields := []Field{}
-	for _, f := range u {
-		fields = append(fields, Field{
-			ID:      types.String{Value: f.ID},
-			Label:   types.String{Value: f.Label},
-			Type:    types.String{Value: f.Type},
-			Value:   types.String{Value: f.Value},
-			Purpose: types.String{Value: f.Purpose},
-		})
-	}
-	return fields
+	return tags
 }

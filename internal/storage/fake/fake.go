@@ -530,7 +530,7 @@ func (r *repository) GetItemByTitle(ctx context.Context, vaultID string, title s
 
 	// Fake storage doesn't need optimization.
 	for _, i := range r.itemsByID {
-		if i.Title == title && i.VaultID == vaultID {
+		if i.Title == title && i.Vault.ID == vaultID {
 			return &i, nil
 		}
 	}
