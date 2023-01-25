@@ -296,6 +296,7 @@ func (p *provider) GetResources(_ context.Context) (map[string]tfsdk.ResourceTyp
 		"onepasswordorg_vault":              resourceVaultType{},
 		"onepasswordorg_vault_group_access": resourceVaultGroupAccessType{},
 		"onepasswordorg_vault_user_access":  resourceVaultUserAccessType{},
+		"onepasswordorg_item":               resourceItemType{},
 	}, nil
 }
 
@@ -304,5 +305,6 @@ func (p *provider) GetDataSources(_ context.Context) (map[string]tfsdk.DataSourc
 		"onepasswordorg_user":  dataSourceUserType{},
 		"onepasswordorg_group": dataSourceGroupType{},
 		"onepasswordorg_vault": dataSourceVaultType{},
+		"onepasswordorg_item":  dataSourceItemType{},
 	}, nil
 }

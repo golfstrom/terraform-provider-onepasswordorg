@@ -55,6 +55,11 @@ func (o *onePasswordCliCmd) UserArg() *onePasswordCliCmd {
 	return o
 }
 
+func (o *onePasswordCliCmd) ItemArg() *onePasswordCliCmd {
+	o.args = append(o.args, "item")
+	return o
+}
+
 func (o *onePasswordCliCmd) GroupArg() *onePasswordCliCmd {
 	o.args = append(o.args, "group")
 	return o
@@ -72,6 +77,11 @@ func (o *onePasswordCliCmd) RawStrArg(s string) *onePasswordCliCmd {
 
 func (o *onePasswordCliCmd) NameFlag(name string) *onePasswordCliCmd {
 	o.args = append(o.args, "--name", name)
+	return o
+}
+
+func (o *onePasswordCliCmd) EditFieldFlag(field string, name string) *onePasswordCliCmd {
+	o.args = append(o.args, "--", field, "=", name)
 	return o
 }
 

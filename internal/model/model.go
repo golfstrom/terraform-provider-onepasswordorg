@@ -66,3 +66,19 @@ type AccessPermissions struct {
 	PrintItems           bool
 	ManageVault          bool
 }
+
+// Item represents a 1password item.
+type Item struct {
+	ID      string
+	VaultID string
+	Title   string
+	Fields  []Field
+}
+
+type Field struct {
+	ID      string
+	Type    string
+	Purpose string
+	Label   string
+	Value   string
+}
