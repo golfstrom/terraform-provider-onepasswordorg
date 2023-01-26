@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/slok/terraform-provider-onepasswordorg/internal/model"
 )
@@ -31,15 +32,17 @@ When a 1password user resources is created, it will be invited  by email.
 				Computed: true,
 			},
 			"name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The name of the user.",
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "The name of the user.",
+				ValidateFunc: validation.StringIsNotEmpty,
 			},
 			"email": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The description of the user.",
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				Description:  "The description of the user.",
+				ValidateFunc: validation.StringIsNotEmpty,
 			},
 		},
 	}

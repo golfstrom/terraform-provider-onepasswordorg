@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/slok/terraform-provider-onepasswordorg/internal/model"
 )
@@ -32,14 +33,15 @@ func resourceGroup() *schema.Resource {
 				Computed: true,
 			},
 			"name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The name of the group.",
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "The name of the group.",
+				ValidateFunc: validation.StringIsNotEmpty,
 			},
 			"description": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Computed:    true,
+				Default:     "Managed by Terraform",
 				Description: "The description of the group.",
 			},
 		},

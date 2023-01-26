@@ -126,44 +126,6 @@ func (p *ProviderConfig) configureCliPath(config providerData) (string, error) {
 	return cliPath, nil
 }
 
-//
-//func (p *provider) GetResources(_ context.Context) (map[string]tfsdk.ResourceType, diag.Diagnostics) {
-//	return map[string]tfsdk.ResourceType{
-//		"onepasswordorg_user":               resourceUserType{},
-//		"onepasswordorg_group":              resourceGroupType{},
-//		"onepasswordorg_group_member":       resourceGroupMemberType{},
-//		"onepasswordorg_vault":              resourceVaultType{},
-//		"onepasswordorg_vault_group_access": resourceVaultGroupAccessType{},
-//		"onepasswordorg_vault_user_access":  resourceVaultUserAccessType{},
-//		"onepasswordorg_item":               resourceItemType{},
-//	}, nil
-//}
-//
-//func (p *provider) GetDataSources(_ context.Context) (map[string]tfsdk.DataSourceType, diag.Diagnostics) {
-//	return map[string]tfsdk.DataSourceType{
-//		"onepasswordorg_user":  dataSourceUserType{},
-//		"onepasswordorg_group": dataSourceGroupType{},
-//		"onepasswordorg_vault": dataSourceVaultType{},
-//		"onepasswordorg_item":  dataSourceItemType{},
-//	}, nil
-//}
-
-func init() {
-	// Set descriptions to support markdown syntax, this will be used in document generation
-	// and the language server.
-	// schema.DescriptionKind = schema.StringMarkdown
-
-	// Customize the content of descriptions when output. For example you can add defaults on
-	// to the exported descriptions if present.
-	// schema.SchemaDescriptionBuilder = func(s *schema.Schema) string {
-	// 	desc := s.Description
-	// 	if s.Default != nil {
-	// 		desc += fmt.Sprintf(" Defaults to `%v`.", s.Default)
-	// 	}
-	// 	return strings.TrimSpace(desc)
-	// }
-}
-
 // Provider The 1Password Connect terraform provider
 func Provider() *schema.Provider {
 	provider := &schema.Provider{
@@ -208,11 +170,13 @@ func Provider() *schema.Provider {
 			"onepasswordorg_vault": dataSourceVault(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"onepasswordorg_group":        resourceGroup(),
-			"onepasswordorg_group_member": resourceGroupMember(),
-			"onepasswordorg_item":         resourceItem(),
-			"onepasswordorg_user":         resourceUser(),
-			"onepasswordorg_vault":        resourceVault(),
+			"onepasswordorg_group":              resourceGroup(),
+			"onepasswordorg_group_member":       resourceGroupMember(),
+			"onepasswordorg_item":               resourceItem(),
+			"onepasswordorg_user":               resourceUser(),
+			"onepasswordorg_vault":              resourceVault(),
+			"onepasswordorg_vault_group_access": resourceVaultGroupAccess(),
+			"onepasswordorg_vault_user_access":  resourceVaultUserAccess(),
 		},
 	}
 	provider.ConfigureFunc = func(d *schema.ResourceData) (interface{}, error) {
@@ -283,9 +247,9 @@ func Provider() *schema.Provider {
 			if err != nil {
 				return nil, fmt.Errorf(createErrSummary + "Unable to create 1password op repository:\n\n" + err.Error())
 			}
-			p.repo = repo
-			p.configured = true
 		}
+		p.repo = repo
+		p.configured = true
 
 		return p, nil
 	}

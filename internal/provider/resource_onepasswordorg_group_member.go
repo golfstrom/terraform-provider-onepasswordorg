@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/slok/terraform-provider-onepasswordorg/internal/model"
 )
@@ -33,22 +34,25 @@ A 1password group membership will make a user part of a group with a role on tha
 				Computed: true,
 			},
 			"user_id": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The user ID.",
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				Description:  "The user ID.",
+				ValidateFunc: validation.StringIsNotEmpty,
 			},
 			"group_id": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "The group ID.",
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				Description:  "The group ID.",
+				ValidateFunc: validation.StringIsNotEmpty,
 			},
 			"role": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     "member",
-				Description: "The role of the user on the group (can be `member` or `manager`, by default member).",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "member",
+				Description:  "The role of the user on the group (can be `member` or `manager`, by default member).",
+				ValidateFunc: validation.StringIsNotEmpty,
 			},
 		},
 	}

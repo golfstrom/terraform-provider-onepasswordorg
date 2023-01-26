@@ -11,15 +11,15 @@ import (
 	"github.com/slok/terraform-provider-onepasswordorg/internal/model"
 )
 
-func resourceVaultGroupAccess() *schema.Resource {
+func resourceVaultUserAccess() *schema.Resource {
 	return &schema.Resource{
 		Description: `
-Provides vault access for a group.
+Provides vault access for a user.
     `,
-		CreateContext: resourceVaultGroupAccessCreate,
-		ReadContext:   resourceVaultGroupAccessRead,
-		UpdateContext: resourceVaultGroupAccessUpdate,
-		DeleteContext: resourceVaultGroupAccessDelete,
+		CreateContext: resourceVaultUserAccessCreate,
+		ReadContext:   resourceVaultUserAccessRead,
+		UpdateContext: resourceVaultUserAccessUpdate,
+		DeleteContext: resourceVaultUserAccessDelete,
 
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
@@ -35,40 +35,40 @@ Provides vault access for a group.
 				ForceNew:    true,
 				Description: "The vault ID.",
 			},
-			"group_id": {
+			"user_id": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "The group ID.",
+				Description: "The user ID.",
 			},
 			"permissions": permissionsAttribute,
 		},
 	}
 }
 
-func resourceVaultGroupAccessCreate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceVaultUserAccessCreate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	p := meta.(ProviderConfig)
 	var diags diag.Diagnostics
 	if !p.configured {
 		return diag.Errorf("Provider not configured:" + "The provider hasn't been configured before apply.")
 	}
 
-	m, err := dataToVaultGroupAccess(data)
+	m, err := dataToVaultUserAccess(data)
 	if err != nil {
 		return diag.Errorf(err.Error())
 	}
 
-	err = p.repo.EnsureVaultGroupAccess(ctx, *m)
+	err = p.repo.EnsureVaultUserAccess(ctx, *m)
 	if err != nil {
 		return diag.Errorf(err.Error())
 	}
 
-	vaultGroupAccessToData(*m, data)
+	vaultUserAccessToData(*m, data)
 
 	return diags
 }
 
-func resourceVaultGroupAccessRead(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceVaultUserAccessRead(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	p := meta.(ProviderConfig)
 	var diags diag.Diagnostics
 	if !p.configured {
@@ -76,77 +76,77 @@ func resourceVaultGroupAccessRead(ctx context.Context, data *schema.ResourceData
 	}
 
 	id := data.Id()
-	vaultID, groupID, err := unpackVaultGroupAccessID(id)
+	vaultID, userID, err := unpackVaultUserAccessID(id)
 	if err != nil {
 		return diag.Errorf("Error getting member ID: " + "Could not get member ID:" + err.Error())
 	}
 
-	vaultGroupAccess, err := p.repo.GetVaultGroupAccessByID(ctx, vaultID, groupID)
+	vaultUserAccess, err := p.repo.GetVaultUserAccessByID(ctx, vaultID, userID)
 	if err != nil {
-		return diag.Errorf("Error reading group access:" + fmt.Sprintf("Could not get group access %q, unexpected error: %s", id, err.Error()))
+		return diag.Errorf("Error reading user access:" + fmt.Sprintf("Could not get user access %q, unexpected error: %s", id, err.Error()))
 	}
 
-	vaultGroupAccessToData(*vaultGroupAccess, data)
+	vaultUserAccessToData(*vaultUserAccess, data)
 	return diags
 }
 
-func resourceVaultGroupAccessUpdate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceVaultUserAccessUpdate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	p := meta.(ProviderConfig)
 	var diags diag.Diagnostics
 	if !p.configured {
 		return diag.Errorf("Provider not configured:" + "The provider hasn't been configured before apply.")
 	}
 
-	m, err := dataToVaultGroupAccess(data)
+	m, err := dataToVaultUserAccess(data)
 	if err != nil {
 		return diag.Errorf(err.Error())
 	}
 
-	err = p.repo.EnsureVaultGroupAccess(ctx, *m)
+	err = p.repo.EnsureVaultUserAccess(ctx, *m)
 	if err != nil {
 		return diag.Errorf(err.Error())
 	}
 
-	vaultGroupAccessToData(*m, data)
+	vaultUserAccessToData(*m, data)
 
 	return diags
 }
 
-func resourceVaultGroupAccessDelete(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceVaultUserAccessDelete(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	p := meta.(ProviderConfig)
 	var diags diag.Diagnostics
 	if !p.configured {
 		return diag.Errorf("Provider not configured:" + "The provider hasn't been configured before apply.")
 	}
 
-	// Get group access.
+	// Get user access.
 	id := data.Id()
-	vaultID, groupID, err := unpackVaultGroupAccessID(id)
+	vaultID, userID, err := unpackVaultUserAccessID(id)
 	if err != nil {
 		return diag.Errorf("Error getting member ID: " + "Could not get member ID:" + err.Error())
 	}
 
-	err = p.repo.DeleteVaultGroupAccess(ctx, vaultID, groupID)
+	err = p.repo.DeleteVaultUserAccess(ctx, vaultID, userID)
 	if err != nil {
-		return diag.Errorf("Error reading group access:" + fmt.Sprintf("Could not get group access %q, unexpected error: %s", id, err.Error()))
+		return diag.Errorf("Error reading user access:" + fmt.Sprintf("Could not get user access %q, unexpected error: %s", id, err.Error()))
 	}
 
 	return diags
 }
 
-func dataToVaultGroupAccess(data *schema.ResourceData) (*model.VaultGroupAccess, error) {
-	groupID := data.Get("group_id").(string)
+func dataToVaultUserAccess(data *schema.ResourceData) (*model.VaultUserAccess, error) {
+	userID := data.Get("user_id").(string)
 	vaultID := data.Get("vault_id").(string)
 
 	// Check the ID is correct.
 	if data.Id() != "" {
-		vid, gid, err := unpackVaultGroupAccessID(data.Id())
+		vid, gid, err := unpackVaultUserAccessID(data.Id())
 		if err != nil {
 			return nil, err
 		}
 
-		if gid != groupID {
-			return nil, fmt.Errorf("resource id is wrong based on group ID")
+		if gid != userID {
+			return nil, fmt.Errorf("resource id is wrong based on user ID")
 		}
 
 		if vid != vaultID {
@@ -155,32 +155,31 @@ func dataToVaultGroupAccess(data *schema.ResourceData) (*model.VaultGroupAccess,
 	}
 	permissions := data.Get("permissions").([]interface{})
 
-	return &model.VaultGroupAccess{
+	return &model.VaultUserAccess{
 		VaultID:     vaultID,
-		GroupID:     groupID,
+		UserID:      userID,
 		Permissions: dataToAccessPermissions(permissions[0].(map[string]interface{})),
 	}, nil
 }
 
-func vaultGroupAccessToData(m model.VaultGroupAccess, data *schema.ResourceData) error {
-	id := packVaultGroupAccessID(m.VaultID, m.GroupID)
+func vaultUserAccessToData(m model.VaultUserAccess, data *schema.ResourceData) error {
+	id := packVaultUserAccessID(m.VaultID, m.UserID)
 
 	data.SetId(id)
-	data.Set("group_id", m.GroupID)
+	data.Set("user_id", m.UserID)
 	data.Set("vault_id", m.VaultID)
 	data.Set("permissions", [1]map[string]interface{}{accessPermissionsToData(m.Permissions)})
 	return nil
 }
-
-func packVaultGroupAccessID(vaultID, groupID string) string {
-	return vaultID + "/" + groupID
+func packVaultUserAccessID(vaultID, userID string) string {
+	return vaultID + "/" + userID
 }
 
-func unpackVaultGroupAccessID(id string) (vaultID, groupID string, err error) {
+func unpackVaultUserAccessID(id string) (vaultID, userID string, err error) {
 	s := strings.SplitN(id, "/", 2)
 	if len(s) != 2 {
 		return "", "", fmt.Errorf(
-			"invalid vault group access ID format: %s (expected <VAULT ID>/<GROUP ID>)", id)
+			"invalid vault user access ID format: %s (expected <VAULT ID>/<USER ID>)", id)
 	}
 
 	return s[0], s[1], nil

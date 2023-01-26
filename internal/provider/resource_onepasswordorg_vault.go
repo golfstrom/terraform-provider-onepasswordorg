@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	"github.com/slok/terraform-provider-onepasswordorg/internal/model"
 )
@@ -31,9 +32,10 @@ Provides a vault resource.
 				Computed: true,
 			},
 			"name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The name of the vault.",
+				Type:         schema.TypeString,
+				Required:     true,
+				Description:  "The name of the vault.",
+				ValidateFunc: validation.StringIsNotEmpty,
 			},
 			"description": {
 				Type:        schema.TypeString,

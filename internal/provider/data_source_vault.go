@@ -2,11 +2,9 @@ package provider
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/slok/terraform-provider-onepasswordorg/internal/model"
 )
 
 func dataSourceVault() *schema.Resource {
@@ -50,13 +48,9 @@ func dataSourceVaultRead(ctx context.Context, data *schema.ResourceData, meta in
 		return diag.Errorf("Error getting user: Could not get user, unexpected error: " + err.Error())
 	}
 
-	data.SetId(vaultTerraformID(vault))
+	data.SetId(vault.ID)
 	data.Set("uuid", vault.ID)
 	data.Set("name", vault.Name)
 	data.Set("description", vault.Description)
 	return diags
-}
-
-func vaultTerraformID(vault *model.Vault) string {
-	return fmt.Sprintf("vaults/%s", vault.ID)
 }
