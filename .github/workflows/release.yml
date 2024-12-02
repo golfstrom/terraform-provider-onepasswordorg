@@ -15,7 +15,7 @@ on:
     tags:
       - "v*"
 env:
-  OP_CLI_VERSION: 2.13.1
+  OP_CLI_VERSION: 2.30.3 
 
 jobs:
   goreleaser:
